@@ -1,12 +1,27 @@
 name: Check HA config
 on:
   pull_request:
-    paths:
-      - '*/**.yaml'
-      - '!.github/**'
+
 jobs:
-  home-assistant:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      ha-config: ${{ steps.filter.outputs.ha-config }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ha-config:
+            - '**/**.yaml'
+            - '!.github/**'
+      
+  home-assistant-config-check:
     name: Home Assistant Configuration Check
+    needs: changes
+    if: ${{ needs.changes.outputs.ha-config == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out configuration from GitHub
