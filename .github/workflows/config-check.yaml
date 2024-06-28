@@ -13,10 +13,11 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          predicate-quantifier: 'every'
           filters: |
             ha-config:
-            - '**/**.yaml'
-            - '!.github/**'
+              - '**/**.yaml'
+              - '!.github/**'
       
   home-assistant-config-check:
     name: Home Assistant Configuration Check
