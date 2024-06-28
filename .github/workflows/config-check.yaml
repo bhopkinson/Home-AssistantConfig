@@ -3,7 +3,8 @@ on:
   pull_request:
 
 jobs:
-  changes:
+  paths-filter:
+    name: Check changed files
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -21,7 +22,7 @@ jobs:
       
   home-assistant-config-check:
     name: Home Assistant Configuration Check
-    needs: changes
+    needs: paths-filter
     if: ${{ needs.changes.outputs.ha-config == 'true' }}
     runs-on: ubuntu-latest
     steps:
