@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - '*/**.yaml'
+      - '!.github/**'
 jobs:
   home-assistant:
     name: Home Assistant Configuration Check
