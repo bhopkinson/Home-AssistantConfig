@@ -23,7 +23,7 @@ jobs:
   home-assistant-config-check:
     name: Home Assistant Configuration Check
     needs: paths-filter
-    if: ${{ needs.changes.outputs.ha-config == 'true' }}
+    if: ${{ needs.paths-filter.outputs.ha-config == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: ⤵️ Check out configuration from GitHub
