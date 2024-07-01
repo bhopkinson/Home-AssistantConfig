@@ -1,0 +1,9 @@
+###############################################################################
+# Package: git
+# Description: Various git related sensors and automations
+###############################################################################
+
+sensor:
+  - platform: command_line
+    name: config_current_commit
+    command: 'cd /config; git log -1'
