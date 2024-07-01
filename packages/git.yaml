@@ -4,6 +4,29 @@
 ###############################################################################
 
 command_line:
-  sensor:
-    name: config_current_commit
-    command: cd /config; git log -1
+  # Read the last git log every hour
+  - sensor:
+      name: config_current_commit
+      command: cd /config; git log -1 --date=iso-strict
+      scan_interval: 3600
+
+  template:
+    - sensor:
+        # First 7 characters of the current commit id
+        - name: config_current_commit_id
+          state: {{ states('sensor.config_current_commit').split()[1][:7] }}
+
+        # The date/time of the current commit
+        - name: config_current_commit_datetime
+          state: >
+            {% set lines = states('sensor.config_current_commit').split('\n') %}
+            {% set date_time = lines[2].split('Date:')[1].strip() %}
+            {{ as_datetime(date_time) }}
+
+        # Human readable time since current commit
+        - name: config_time_since_last_commit
+          state: {{ time_since(date_time_obj) }} ago
+
+        # Commit message of current commit
+        - name: config_current_commit_message
+          state: {{ states('sensor.config_current_commit').split('\n')[4] }}
