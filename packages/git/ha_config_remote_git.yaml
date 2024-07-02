@@ -1,0 +1,50 @@
+###############################################################################
+# Package: ha_config_remote_git
+# Description: Sensors for remote Home Assistant Config git repo
+###############################################################################
+
+command_line:
+  - sensor:
+      # Read the latest remote git log. nb. this will perform a fetch first
+      name: config_latest_remote_commit
+      command: cd /config; git fetch; git log origin/main -1 --date=iso-strict
+      scan_interval: 3600 # every hour
+
+template:
+  - sensor:
+      # First 7 characters of the latest remote commit id
+      - name: config_latest_remote_commit_id
+        state: >-
+          {{ states('sensor.config_latest_remote_commit').split()[1][:7] }}
+
+      # The date/time of the current commit
+      - name: config_latest_remote_commit_datetime
+        state: >-
+          {% set lines = states('sensor.config_latest_remote_commit').split('\n') %}
+          {{ lines[2].split('Date:')[1].strip() }}
+
+      # Human readable time since current commit
+      - name: config_time_since_latest_remote_commit
+        state: >-
+          {{ time_since(as_datetime(states('sensor.config_latest_remote_commit_datetime'))) }} ago
+
+      # Commit message of current commit
+      - name: config_latest_remote_commit_message
+        state: >-
+          {{ states('sensor.config_latest_remote_commit').split('\n')[4] }}
+          
+automation:
+  alias: Update sensor.config_latest_remote_commit from webhook trigger
+  id: ha_config_remote_git__remote_updated
+  trigger:
+    - alias: "When webook received"
+      platform: webhook
+      id: ha_config_remote_git__remote_updated
+      webhook_id: !secret ha_config_remote_git__remote_updated
+      local_only: false
+  action:
+    - alias: "Update sensor.config_latest_remote_commit"
+      service: homeassistant.update_entity
+      target:
+        entity_id:
+          - sensor.config_latest_remote_commit

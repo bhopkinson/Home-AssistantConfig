@@ -1,14 +1,14 @@
 ###############################################################################
-# Package: git
-# Description: Various git related sensors and automations
+# Package: ha_config_local_git
+# Description: Sensors for local Home Assistant Config git repo
 ###############################################################################
 
 command_line:
   - sensor:
-      # Read the last git log every hour
+      # Read the last local git log
       name: config_current_commit
       command: cd /config; git log -1 --date=iso-strict
-      scan_interval: 3600
+      scan_interval: 3600 # every hour
 
 template:
   - sensor:
