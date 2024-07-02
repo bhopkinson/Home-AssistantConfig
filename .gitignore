@@ -2,10 +2,12 @@
 # An * ensures that everything will be ignored.
 *
 
-# You can whitelist files/folders with !, these will not be ignored.
-!*.yaml
+# You can allowlist files/folders with !, these will not be ignored.
 !.gitignore
-!*.md
+!packages
+!packages/*
+!**/*.yaml
+!**/*.md
 
 # Ignore folders.
 .storage
