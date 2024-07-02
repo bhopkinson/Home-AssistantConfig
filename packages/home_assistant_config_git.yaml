@@ -1,0 +1,60 @@
+###############################################################################
+# Package: home_assistant_config_git
+# Description: Sensors and automations for Home Assistant Config git repo
+###############################################################################
+
+command_line:
+  - sensor:
+    # Read the last local git log, display the first 7 characters of the git id, and store the rest in attributes
+    name: config_current_local_commit
+    command: 'cd /config; git log -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"},'''
+    value_template: >-
+      {{ value_json.commit[:7] }}
+    json_attributes:
+      - commit
+      - author
+      - date
+      - message
+    scan_interval: 3600 # every hour
+
+  - sensor:
+    # Read the latest remote git log. nb. this will perform a fetch first
+    name: config_latest_remote_commit
+    command: 'cd /config; git fetch; git log origin/main -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"},'''
+    value_template: >-
+      {{ value_json.commit[:7] }}
+    json_attributes:
+      - commit
+      - author
+      - date
+      - message
+    scan_interval: 3600 # every hour
+
+template:
+  - sensor:
+    # Human readable time since current commit
+    - name: config_current_local_commit_time_since
+      state: >-
+        {{ time_since(as_datetime(state_attr('sensor.config_current_local_commit', date))) }} ago
+
+  - sensor:
+    # Human readable time since current commit
+    - name: config_latest_remote_commit_time_since
+      state: >-
+        {{ time_since(as_datetime(state_attr('sensor.config_latest_remote_commit', date))) }} ago
+
+automation:
+  alias: Update sensor.config_latest_remote_commit from webhook trigger
+  id: home_assistant_config_git__remote_updated
+  trigger:
+    - alias: "When webook received"
+      platform: webhook
+      id: home_assistant_config_git__remote_updated
+      webhook_id: !secret home_assistant_config_git__remote_updated
+      local_only: false
+  action:
+    - alias: "Update sensor.config_latest_remote_commit"
+      service: homeassistant.update_entity
+      target:
+        entity_id:
+          - sensor.config_latest_remote_commit
