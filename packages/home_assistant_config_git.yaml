@@ -36,6 +36,7 @@ template:
     - name: config_current_local_commit_time_since
       state: >-
         {{ time_since(as_datetime(state_attr('sensor.config_current_local_commit', 'date'))) }} ago
+        {{ time_since(as_datetime(state_attr('sensor.config_current_local_commit', 'date'))) }} ago
 
   - sensor:
     # Human readable time since current commit
