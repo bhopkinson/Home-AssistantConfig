@@ -6,42 +6,42 @@
 command_line:
   - sensor:
     # Read the last local git log, display the first 7 characters of the git id, and store the rest in attributes
-    name: config_current_local_commit
-    command: 'cd /config; git log -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"},'''
-    value_template: >-
-      {{ value_json.commit[:7] }}
-    json_attributes:
-      - commit
-      - author
-      - date
-      - message
-    scan_interval: 3600 # every hour
+      name: config_current_local_commit
+      command: 'cd /config; git log -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"}'''
+      value_template: >-
+        {{ value_json.commit[:7] }}
+      json_attributes:
+        - commit
+        - author
+        - date
+        - message
+      scan_interval: 3600 # every hour
 
   - sensor:
-    # Read the latest remote git log. nb. this will perform a fetch first
-    name: config_latest_remote_commit
-    command: 'cd /config; git fetch; git log origin/main -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"},'''
-    value_template: >-
-      {{ value_json.commit[:7] }}
-    json_attributes:
-      - commit
-      - author
-      - date
-      - message
-    scan_interval: 3600 # every hour
+      # Read the latest remote git log. nb. this will perform a fetch first
+      name: config_latest_remote_commit
+      command: 'cd /config; git fetch; git log origin/main -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"}'''
+      value_template: >-
+        {{ value_json.commit[:7] }}
+      json_attributes:
+        - commit
+        - author
+        - date
+        - message
+      scan_interval: 3600 # every hour
 
 template:
   - sensor:
     # Human readable time since current commit
     - name: config_current_local_commit_time_since
       state: >-
-        {{ time_since(as_datetime(state_attr('sensor.config_current_local_commit', date))) }} ago
+        {{ time_since(as_datetime(state_attr('sensor.config_current_local_commit', 'date'))) }} ago
 
   - sensor:
     # Human readable time since current commit
     - name: config_latest_remote_commit_time_since
       state: >-
-        {{ time_since(as_datetime(state_attr('sensor.config_latest_remote_commit', date))) }} ago
+        {{ time_since(as_datetime(state_attr('sensor.config_latest_remote_commit', 'date'))) }} ago
 
 automation:
   alias: Update sensor.config_latest_remote_commit from webhook trigger
