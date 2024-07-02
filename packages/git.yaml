@@ -21,13 +21,12 @@ template:
       - name: config_current_commit_datetime
         state: >-
           {% set lines = states('sensor.config_current_commit').split('\n') %}
-          {% set date_time = lines[2].split('Date:')[1].strip() %}
-          {{ as_datetime(date_time) }}
+          {{ lines[2].split('Date:')[1].strip() }}
 
       # Human readable time since current commit
       - name: config_time_since_last_commit
         state: >-
-          {{ time_since(states('sensor.config_current_commit_datetime') }} ago
+          {{ time_since(as_datetime(states('sensor.config_current_commit_datetime'))) }} ago
 
       # Commit message of current commit
       - name: config_current_commit_message
