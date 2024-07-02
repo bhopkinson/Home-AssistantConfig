@@ -28,8 +28,11 @@ jobs:
     steps:
       - name: ⤵️ Check out configuration from GitHub
         uses: actions/checkout@v3
+      - name: 👀 Read .HA_VERSION file
+        id: getversion
+        run: echo "::set-output name=ha_version::$(cat .HA_VERSION)"
       - name: 🚀 Run Home Assistant Configuration Check
         uses: frenck/action-home-assistant@v1
         with:
           secrets: secrets.fake.yaml
-          version: "stable"
+          version: ${{ steps.getversion.outputs.ha_version }}
