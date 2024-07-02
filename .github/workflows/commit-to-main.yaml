@@ -1,0 +1,15 @@
+name: Call webhook on commit to main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call home assistant webhook
+        uses: eallion/fast-webhook@v1
+        with:
+          url: ${{ secrets.HOME_ASSISTANT_GIT_REMOTE_UPDATED_WEBHOOK }}
