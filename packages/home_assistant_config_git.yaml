@@ -16,8 +16,30 @@ command_line:
         - date
         - message
       scan_interval: 3600 # every hour
+      # Read the last local git log, display the first 7 characters of the git id, and store the rest in attributes
+      name: config_current_local_commit
+      command: 'git log -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"}'''
+      value_template: >-
+        {{ value_json.commit[:7] }}
+      json_attributes:
+        - commit
+        - author
+        - date
+        - message
+      scan_interval: 3600 # every hour
 
   - sensor:
+      # Read the latest remote git log. nb. this will perform a fetch first
+      name: config_latest_remote_commit
+      command: 'git fetch; git log origin/main -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"}'''
+      value_template: >-
+        {{ value_json.commit[:7] }}
+      json_attributes:
+        - commit
+        - author
+        - date
+        - message
+      scan_interval: 3600 # every hour
       # Read the latest remote git log. nb. this will perform a fetch first
       name: config_latest_remote_commit
       command: 'git fetch; git log origin/main -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"}'''
@@ -46,20 +68,36 @@ template:
 input_button:
   config_pull:
     name: Pull latest config
+  config_commit:
+    name: Commit config
+
+input_text:
+  config_commit_message:
+    name: Config commit message
+  git_password:
+    name: Git password
+    initial: !secret home_assistant_config_git__git_password
 
 shell_command:
   config_git_pull: 'git pull'
+  # commit script inspired from https://community.home-assistant.io/t/git-push-setup-with-ssh-key-issue/227978
+  config_git_commit: >-
+    git config core.sshCommand 'ssh -o UserKnownHostsFile=/config/.ssh/known_hosts -i /config/.ssh/id_git -F /dev/null'
+    git add .
+    git commit -m "{{ states(''input_text.config_commit_message'') }}"
+    git push
 
 automation:
   - alias: Update sensor.config_latest_remote_commit from webhook trigger
     id: home_assistant_config_git__remote_updated
-    
+
     trigger:
       - alias: When webook received
         platform: webhook
         id: home_assistant_config_git__remote_updated
         webhook_id: !secret home_assistant_config_git__remote_updated
         local_only: false
+
 
     action:
       - alias: Update sensor.config_latest_remote_commit
@@ -71,10 +109,12 @@ automation:
   - alias: Pull latest config from git
     id: home_assistant_config_git__config_pull
 
+
     trigger:
       - alias: When Pull latest config button is pressed
         platform: state
         entity_id: input_button.config_pull
+
 
     action:
       - alias: Pull config from git
@@ -85,3 +125,14 @@ automation:
         target:
           entity_id:
             - sensor.config_latest_remote_commit
+
+  - alias: Commit config to git
+    id: home_assistant_config_git_config_commit
+
+    trigger:
+      - alias: When Config commit button is pressed
+        platform: state
+        entity_id: input_button.config_commit
+
+    action:
+      - alias: Commit to branch
