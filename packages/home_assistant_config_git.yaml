@@ -46,14 +46,29 @@ template:
 input_button:
   config_pull:
     name: Pull latest config
+  config_commit:
+    name: Commit config
+
+input_text:
+  config_commit_message:
+    name: Config commit message
+  git_password:
+    name: Git password
+    initial: !secret home_assistant_config_git__git_password
 
 shell_command:
   config_git_pull: 'git pull'
+  # commit script inspired from https://community.home-assistant.io/t/git-push-setup-with-ssh-key-issue/227978
+  config_git_commit: >-
+    git config core.sshCommand 'ssh -o UserKnownHostsFile=/config/.ssh/known_hosts -i /config/.ssh/id_git -F /dev/null'
+    git add .
+    git commit -m "{{ states(''input_text.config_commit_message'') }}"
+    git push
 
 automation:
   - alias: Update sensor.config_latest_remote_commit from webhook trigger
     id: home_assistant_config_git__remote_updated
-    
+
     trigger:
       - alias: When webook received
         platform: webhook
@@ -85,3 +100,14 @@ automation:
         target:
           entity_id:
             - sensor.config_latest_remote_commit
+
+  - alias: Commit config to git
+    id: home_assistant_config_git_config_commit
+
+    trigger:
+      - alias: When Config commit button is pressed
+        platform: state
+        entity_id: input_button.config_commit
+
+    action:
+      - alias: Commit to branch
