@@ -116,6 +116,12 @@ automation:
         target:
           entity_id:
             - sensor.config_latest_remote_commit
+            
+      - alias: Update sensor.config_current_local_commit
+        service: homeassistant.update_entity
+        target:
+          entity_id:
+            - sensor.config_current_local_commit
 
   - alias: Commit config to git
     id: home_assistant_config_git_config_commit
@@ -134,3 +140,15 @@ automation:
         
       - alias: Push changes
         service: shell_command.config_git_push
+        
+      - alias: Update sensor.config_latest_remote_commit
+        service: homeassistant.update_entity
+        target:
+          entity_id:
+            - sensor.config_latest_remote_commit
+            
+      - alias: Update sensor.config_current_local_commit
+        service: homeassistant.update_entity
+        target:
+          entity_id:
+            - sensor.config_current_local_commit
