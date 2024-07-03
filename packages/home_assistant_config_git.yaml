@@ -80,11 +80,9 @@ input_text:
 
 shell_command:
   config_git_pull: 'git pull'
-  # commit script inspired from https://community.home-assistant.io/t/git-push-setup-with-ssh-key-issue/227978
-  config_git_commit: >-
-    git add -A &&
-    git commit -m "{{ states('input_text.config_commit_message') }}" &&
-    git push -u origin main
+  config_git_add: 'git add -A'
+  config_git_commit: 'git commit -m "{{ states(''input_text.config_commit_message'') }}"'
+  config_git_push: 'git push -u origin main'
 
 automation:
   - alias: Update sensor.config_latest_remote_commit from webhook trigger
@@ -134,5 +132,11 @@ automation:
         entity_id: input_button.config_commit
 
     action:
-      - alias: Commit to branch
+      - alias: Stage changes
+        service: shell_command.config_git_add
+        
+      - alias: Commit changes
         service: shell_command.config_git_commit
+        
+      - alias: Push changes
+        service: shell_command.config_git_push
