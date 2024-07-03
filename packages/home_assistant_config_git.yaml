@@ -74,9 +74,6 @@ input_button:
 input_text:
   config_commit_message:
     name: Config commit message
-  git_password:
-    name: Git password
-    initial: !secret home_assistant_config_git__git_password
 
 shell_command:
   config_git_pull: 'git pull'
@@ -95,7 +92,6 @@ automation:
         webhook_id: !secret home_assistant_config_git__remote_updated
         local_only: false
 
-
     action:
       - alias: Update sensor.config_latest_remote_commit
         service: homeassistant.update_entity
@@ -106,12 +102,10 @@ automation:
   - alias: Pull latest config from git
     id: home_assistant_config_git__config_pull
 
-
     trigger:
       - alias: When Pull latest config button is pressed
         platform: state
         entity_id: input_button.config_pull
-
 
     action:
       - alias: Pull config from git
