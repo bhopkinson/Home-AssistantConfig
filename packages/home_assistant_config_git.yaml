@@ -21,6 +21,8 @@ command_line:
   - sensor:
       name: config_uncommitted_changes
       command: 'git diff --name-only'
+      value_template: >-
+        {{ value.split() | length }}
       scan_interval: 15 # 15 seconds
 
 template:
