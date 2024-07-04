@@ -63,15 +63,28 @@ template:
         {% set behind = states('sensor.config_commits_behind') | int %}
 
         {% if ahead + behind == 0 %}
-          Configuration is up-to-date
+          Up-to-date
         {% else %}
           {% if ahead > 0 %}
-            {{ "⬆️ " ~ ahead ~ (" commits" if ahead > 1 else " commit ") ~ " ahead" -}}
+            {{ ahead ~ (" commits" if ahead > 1 else " commit ") ~ " ahead" -}}
           {% endif -%}
           {{ ", " if ahead > 0 and behind > 0 -}}
           {% if behind > 0 -%}
-            {{ "⬇️ " ~ behind ~ (" commits" if behind > 1 else " commit") ~ " behind" }}
+            {{ behind ~ (" commits" if behind > 1 else " commit") ~ " behind" }}
           {% endif %}
+        {% endif %}
+      icon: >-
+        {% set ahead = states('sensor.config_commits_ahead') | int %}
+        {% set behind = states('sensor.config_commits_behind') | int %}
+
+        {% if ahead + behind == 0 %}
+          mdi:check-circle-outline
+        {% elif ahead == 1 && behind == 0 %}
+          mdi:arrow-up-thin-circle-outline
+        {% elif ahead == 0 && behind == 1 %}
+          mdi:arrow-down-thin-circle-outline
+        {% else %}
+          mdi:swap-vertical-circle-outline
         {% endif %}
 
 input_button:
