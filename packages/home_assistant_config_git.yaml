@@ -50,9 +50,9 @@ template:
 
         {% if ahead + behind == 0 %}
           mdi:check-circle-outline
-        {% elif ahead == 1 && behind == 0 %}
+        {% elif ahead == 1 and behind == 0 %}
           mdi:arrow-up-thin-circle-outline
-        {% elif ahead == 0 && behind == 1 %}
+        {% elif ahead == 0 and behind == 1 %}
           mdi:arrow-down-thin-circle-outline
         {% else %}
           mdi:swap-vertical-circle-outline
