@@ -28,7 +28,19 @@ command_line:
         - author
         - date
         - message
-      scan_interval: 3600 # every hour
+      scan_interval: 60 # every minute
+
+  - sensor:
+      name: config_commits_ahead
+      command: 'git rev-list main --not origin/main'
+      value_template: >-
+        {{ value.split()|length }}
+
+  - sensor:
+      name: config_commits_behind
+      command: 'git rev-list origin/main --not main'
+      value_template: >-
+        {{ value.split()|length }}
 
 template:
   - sensor:
@@ -42,6 +54,25 @@ template:
     - name: config_latest_remote_commit_time_since
       state: >-
         {{ time_since(as_datetime(state_attr('sensor.config_latest_remote_commit', 'date'))) }} ago
+
+  - sensor:
+    # Human readable display of commit difference
+    - name: config_commits_difference
+      state: >-
+        {% set ahead = states('sensor.config_commits_ahead') | int %}
+        {% set behind = states('sensor.config_commits_behind') | int %}
+
+        {% if ahead + behind == 0 %}
+          Configuration is up-to-date
+        {% else %}
+          {% if ahead > 0 %}
+            {{ "⬆️ " ~ ahead ~ (" commits" if ahead > 1 else " commit ") ~ " ahead" -}}
+          {% endif -%}
+          {{ ", " if ahead > 0 and behind > 0 -}}
+          {% if behind > 0 -%}
+            {{ "⬇️ " ~ behind ~ (" commits" if behind > 1 else " commit") ~ " behind" }}
+          {% endif %}
+        {% endif %}
 
 input_button:
   config_pull:
