@@ -5,56 +5,27 @@
 
 command_line:
   - sensor:
-      # Read the last local git log, display the first 7 characters of the git id, and store the rest in attributes
-      name: config_current_local_commit
-      command: 'git log -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"}'''
-      value_template: >-
-        {{ value_json.commit[:7] }}
-      json_attributes:
-        - commit
-        - author
-        - date
-        - message
-      scan_interval: 3600 # every hour
-
-  - sensor:
-      # Read the latest remote git log. nb. this will perform a fetch first
-      name: config_latest_remote_commit
-      command: 'git fetch; git log origin/main -1 --date=iso-strict --pretty=format:''{"commit": "%H","author": "%aN <%aE>","date": "%ad","message": "%f"}'''
-      value_template: >-
-        {{ value_json.commit[:7] }}
-      json_attributes:
-        - commit
-        - author
-        - date
-        - message
-      scan_interval: 60 # every minute
-
-  - sensor:
       name: config_commits_ahead
       command: 'git rev-list main --not origin/main'
       value_template: >-
-        {{ value.split()|length }}
+        {{ value.split() | length }}
+      scan_interval: 86400 # 1 day
 
   - sensor:
       name: config_commits_behind
       command: 'git rev-list origin/main --not main'
       value_template: >-
-        {{ value.split()|length }}
+        {{ value.split() | length }}
+      scan_interval: 86400 # 1 day
+
+  - sensor:
+      name: config_uncommitted_changes
+      command: 'git diff --name-only'
+      value_template: >-
+        {{ value.split() | length }}
+      scan_interval: 15 # 15 seconds
 
 template:
-  - sensor:
-    # Human readable time since current commit
-    - name: config_current_local_commit_time_since
-      state: >-
-        {{ time_since(as_datetime(state_attr('sensor.config_current_local_commit', 'date'))) }} ago
-
-  - sensor:
-    # Human readable time since current commit
-    - name: config_latest_remote_commit_time_since
-      state: >-
-        {{ time_since(as_datetime(state_attr('sensor.config_latest_remote_commit', 'date'))) }} ago
-
   - sensor:
     # Human readable display of commit difference
     - name: config_commits_difference
@@ -87,6 +58,19 @@ template:
           mdi:swap-vertical-circle-outline
         {% endif %}
 
+  - sensor:
+    # Human readable display of uncommitted changes
+    - name: config_uncommitted_changes_str
+      state: >-
+        {% set uncommitted_changes = states('sensor.config_uncommitted_changes') | int %}
+        {% if uncommitted_changes == 0 %}
+          No uncommitted changes
+        {% elif uncommitted_changes == 1%}
+          1 uncommitted change
+        {% else %}
+          {{ uncommitted_changes ~ "uncomitted changes" }}  
+        {% endif %}
+
 input_button:
   config_pull:
     name: Pull latest config
@@ -98,13 +82,33 @@ input_text:
     name: Config commit message
 
 shell_command:
+  config_git_fetch: 'git fetch'
   config_git_pull: 'git pull'
   config_git_add: 'git add -A'
   config_git_commit: 'git commit -m "{{ states(''input_text.config_commit_message'') }}"'
   config_git_push: 'git push -u origin main'
 
+script:
+  fetch_and_update_git_sensors:
+    sequence:
+      - alias: Run git fetch
+        service: shell_command.config_git_fetch
+
+      - alias: Update sensor.config_commits_behind
+        service: homeassistant.update_entity
+        target:
+          entity_id:
+            - sensor.config_commits_behind
+
+      - alias: Update sensor.config_commits_ahead
+        service: homeassistant.update_entity
+        target:
+          entity_id:
+            - sensor.config_commits_ahead
+
 automation:
-  - alias: Update sensor.config_latest_remote_commit from webhook trigger
+  #############################################################################
+  - alias: Fetch from remote, and update git sensors from webhook trigger
     id: home_assistant_config_git__remote_updated
 
     trigger:
@@ -115,12 +119,10 @@ automation:
         local_only: false
 
     action:
-      - alias: Update sensor.config_latest_remote_commit
-        service: homeassistant.update_entity
-        target:
-          entity_id:
-            - sensor.config_latest_remote_commit
+      - alias: Run fetch, and update git sensors
+        service: script.fetch_and_update_git_sensors
 
+  #############################################################################
   - alias: Pull latest config from git
     id: home_assistant_config_git__config_pull
 
@@ -130,21 +132,16 @@ automation:
         entity_id: input_button.config_pull
 
     action:
+      - alias: Run fetch, and update git sensors
+        service: script.fetch_and_update_git_sensors
+
       - alias: Pull config from git
         service: shell_command.config_git_pull
 
-      - alias: Update sensor.config_latest_remote_commit
-        service: homeassistant.update_entity
-        target:
-          entity_id:
-            - sensor.config_latest_remote_commit
-            
-      - alias: Update sensor.config_current_local_commit
-        service: homeassistant.update_entity
-        target:
-          entity_id:
-            - sensor.config_current_local_commit
+      - alias: Run fetch, and update git sensors
+        service: script.fetch_and_update_git_sensors
 
+ #############################################################################
   - alias: Commit config to git
     id: home_assistant_config_git_config_commit
 
@@ -163,14 +160,5 @@ automation:
       - alias: Push changes
         service: shell_command.config_git_push
         
-      - alias: Update sensor.config_latest_remote_commit
-        service: homeassistant.update_entity
-        target:
-          entity_id:
-            - sensor.config_latest_remote_commit
-            
-      - alias: Update sensor.config_current_local_commit
-        service: homeassistant.update_entity
-        target:
-          entity_id:
-            - sensor.config_current_local_commit
+      - alias: Run fetch, and update git sensors
+        service: script.fetch_and_update_git_sensors
