@@ -23,7 +23,15 @@ command_line:
       command: 'git diff --name-only'
       value_template: >-
         {{ value.split() | length }}
-      scan_interval: 15 # 15 seconds
+      scan_interval: 1 # 1 second
+      
+  - sensor:
+      name: config_uncommitted_files_list
+      command: 'git diff --name-only'
+      value_template: >-
+        {% set value_length = value.split() | length %}
+        {{ value if value_length == 1 else value_length ~ " uncommitted files" }}
+      scan_interval: 86400 # 1 day
 
 template:
   - sensor:
@@ -106,6 +114,20 @@ script:
           entity_id:
             - sensor.config_commits_ahead
 
+  commit_and_push_changes:
+    sequence:
+      - alias: Stage changes
+        service: shell_command.config_git_add
+        
+      - alias: Commit changes
+        service: shell_command.config_git_commit
+        
+      - alias: Push changes
+        service: shell_command.config_git_push
+        
+      - alias: Run fetch, and update git sensors
+        service: script.fetch_and_update_git_sensors
+
 automation:
   #############################################################################
   - alias: Fetch from remote, and update git sensors from webhook trigger
@@ -143,7 +165,7 @@ automation:
 
  #############################################################################
   - alias: Commit config to git
-    id: home_assistant_config_git_config_commit
+    id: home_assistant_config_git__config_commit
 
     trigger:
       - alias: When Config commit button is pressed
@@ -151,14 +173,21 @@ automation:
         entity_id: input_button.config_commit
 
     action:
-      - alias: Stage changes
-        service: shell_command.config_git_add
+      - alias: Commit and push changes
+        service: script.commit_and_push_changes
         
-      - alias: Commit changes
-        service: shell_command.config_git_commit
-        
-      - alias: Push changes
-        service: shell_command.config_git_push
-        
-      - alias: Run fetch, and update git sensors
-        service: script.fetch_and_update_git_sensors
+ #############################################################################
+  - alias: Get list of changed files
+    id: home_assistant_config_git__uncommitted_changes
+    
+    trigger:
+      - alias: When uncommitted changes detected
+        platform: state
+        entity_id: sensor.config_uncommitted_changes
+    
+    action:
+      - alias: Refresh uncommitted files list
+        service: homeassistant.update_entity
+        target:
+          entity_id:
+            - sensor.config_uncommitted_files_list
